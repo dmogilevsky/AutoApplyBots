@@ -1,6 +1,6 @@
 import json
 import os
-import argparse
+import config
 from itertools import count
 from time import sleep
 
@@ -13,64 +13,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-argparser = argparse.ArgumentParser()
-argparser.add_argument(
-    "-username",
-    "-u",
-    type=str,
-    required=True,
-    help="Username to login as.",
-)
-argparser.add_argument(
-    "-password",
-    "-p",
-    type=str,
-    required=True,
-    help="Password for the user.",
-)
-argparser.add_argument(
-    "-keywords",
-    "-k",
-    type=str,
-    nargs="+",
-    required=False,
-    help="Keywords to search for jobs by, will be split by space then ANDed together.",
-)
-argparser.add_argument(
-    "-blacklist",
-    "-b",
-    type=str,
-    nargs="+",
-    default=[],
-    help="Keyword blacklist, will be split by space then ANDed together.",
-)
-argparser.add_argument(
-    "-resume_path",
-    "-r",
-    type=str,
-    required=False,
-    help="Absolute path to resume file to send for the job applications.",
-)
-argparser.add_argument(
-    "-cache_path",
-    "-c",
-    type=str,
-    default="",
-    help="Directory to cache browser session in, so you stay logged in.",
-)
-argparser.add_argument(
-    "-wait_s",
-    "-w",
-    type=int,
-    default=5,
-    help="Number of seconds to wait for selenium to find things.",
-)
-argparser.description = "Automatically apply for jobs on Dice."
-args = argparser.parse_args()
 # args.resume_path = os.path.abspath(args.resume_path)
 SEARCH_URL_WITHOUT_PAGE = (f"https://www.dice.com/jobs?q=backend&countryCode=US&radius=30&radiusUnit=mi&page=%s&pageSize=100&filters.easyApply=true&filters.isRemote=true&language=en'")
 # see if any data exists for this user
-USER_DATA_PATH = os.path.join("cached_data", f"{args.username}.json")
+USER_DATA_PATH = os.path.join("cached_data", f"{config.username}.json")
 completed_jobs = []
 if not os.path.exists("cached_data"):
     os.mkdir("cached_data")
@@ -81,8 +27,8 @@ if os.path.exists(USER_DATA_PATH):
 
 # Create webdriver, add user data to persist login and not have to relog
 options = Options()
-if args.cache_path:
-    options.add_argument("user-data-dir=" + args.cache_path)
+if config.cache_path:
+    options.add_argument("user-data-dir=" + config.cache_path)
 options.add_argument("--disable-popup-blocking")
 options.add_argument("--ignore-certificate-errors")
 options.add_argument('--no-sandbox')
@@ -95,13 +41,13 @@ options.add_experimental_option('useAutomationExtension', False)
 options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
 driver = webdriver.Chrome(service=Service(), options=options)
-wait = WebDriverWait(driver, args.wait_s)
+wait = WebDriverWait(driver, config.wait_s)
 
 # log in
 driver.get("https://www.dice.com/dashboard/login")
 try:
     elem = wait.until(EC.presence_of_element_located((By.ID, "email")))
-    elem.send_keys(f"{args.username}\t{args.password}{Keys.RETURN}")
+    elem.send_keys(f"{config.username}\t{config.password}{Keys.RETURN}")
 except Exception as e:
     print(e)
     print("Don't need to log in. Continuing.")
@@ -142,7 +88,7 @@ for page_number in count(1):
     for job_id, job_text, job_url in job_urls:
         # Job keywords, you want at least one of these to be present
         matching_title = False
-        for s in ["developer", "software", "engineer", "c#", "python", "java", "sql", "golang"]:
+        for s in config.keywords:
             if s.lower() in job_text.lower():
                 matching_title = True
                 break
@@ -150,7 +96,7 @@ for page_number in count(1):
             continue
 
         # Make sure nothing in the job title is one of the blacklisted words
-        if any(kw.lower() in job_text.lower() for kw in args.blacklist):
+        if any(kw.lower() in job_text.lower() for kw in config.blacklist):
             continue
         print(f"Applying to {job_text}.")
         driver.get(job_url)
