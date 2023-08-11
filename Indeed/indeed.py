@@ -21,9 +21,9 @@ class IndeedBot:
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--disable-notifications")
         initialPath = info.chromeProfilePath[0:info.chromeProfilePath.rfind("/")]
-        profileDir = info.chromeProfilePath[info.chromeProfilePath.rfind("/")+1:]
-        options.add_argument('--user-data-dir=' +initialPath)
-        options.add_argument('--profile-directory=' +profileDir)
+        profileDir = info.chromeProfilePath[info.chromeProfilePath.rfind("/") + 1:]
+        options.add_argument('--user-data-dir=' + initialPath)
+        options.add_argument('--profile-directory=' + profileDir)
         # options.add_experimental_option('useAutomationExtension', False)
         # options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
@@ -55,17 +55,23 @@ class IndeedBot:
         print('User has logged in')
 
         # Go to our specific job search
-        self.driver.get('https://www.indeed.com/jobs?q=software+engineer&sc=0kf%3Aattr%28DSQF7%29%3B&vjk=e14527580da91c17')
+        self.driver.get(
+            'https://www.indeed.com/jobs?q=software+engineer&sc=0kf%3Aattr%28DSQF7%29%3B&vjk=e14527580da91c17')
 
+        # Apply to every single job in the search
+        while True:
+            self.apply_to_all_jobs_on_page()
+            self.click_element(By.CSS_SELECTOR, '#jobsearch-JapanPage > div > div > div.css-hyhnne.e37uo190 > div.jobsearch-LeftPane > nav > div:last-child > a')
+
+
+    # Go through the jobList and open in new tab
+    def apply_to_all_jobs_on_page(self):
         # get list of jobs with apply by indeed only
-        jobList = self.driver.find_elements(By.CLASS_NAME, 'iaIcon')
-
-        # initialize main page
+        job_list = self.driver.find_elements(By.CLASS_NAME, 'iaIcon')
         main = self.driver.window_handles[0]
-        # Go through the jobList and open in new tab
-        for job in jobList:
+        for job in job_list:
             self.click_element_using_position(job)
-
+            job_title = self.driver.find_element(By.CSS_SELECTOR, '.jobsearch-JobInfoHeader-title > span:nth-child(1)').text
             already_applied = False
             try:
                 self.driver.find_element(By.CLASS_NAME, 'jobsearch-IndeedApplyButton--disabled')
@@ -76,6 +82,7 @@ class IndeedBot:
             if already_applied:
                 continue
 
+            print("Applying to " + job_title)
             self.click_element(By.ID, 'indeedApplyButton')
 
             self.driver.switch_to.window(self.driver.window_handles[1])
@@ -94,29 +101,31 @@ class IndeedBot:
             # Continue skipping through the indeed apply pages until we either can't
             # or we have applied for the job
             previous_url = self.driver.current_url
-            while 'post-apply' not in previous_url or 'applied' not in previous_url:
-                if 'work-experience' in self.driver.current_url:
-                    self.click_element_using_position(self.driver.find_element(By.CLASS_NAME, 'ia-continueButton'))
-                else:
-                    self.click_element(By.CLASS_NAME, 'ia-continueButton')
-                if previous_url == self.driver.current_url:
-                    print("Need user input to continue")
-                    while previous_url == self.driver.current_url:
-                        if 'post-apply' in previous_url or 'applied' in previous_url:
+            while 'post-apply' not in previous_url or 'applied' not in previous_url or 'postresumeapply' not in previous_url:
+                try:
+                    if 'work-experience' in self.driver.current_url:
+                        self.click_element_using_position(self.driver.find_element(By.CLASS_NAME, 'ia-continueButton'))
+                    else:
+                        self.click_element(By.CLASS_NAME, 'ia-continueButton')
+                    if previous_url == self.driver.current_url:
+                        if not info.wait_for_user_input:
                             break
-                previous_url = self.driver.current_url
+                        print("Need user input to continue")
+                        while previous_url == self.driver.current_url:
+                            if 'post-apply' in previous_url or 'applied' in previous_url:
+                                break
+                    sleep(1)
+                    previous_url = self.driver.current_url
+                except Exception as e:
+                    print(e)
+                    break
 
             self.driver.close()
             self.driver.switch_to.window(main)
             sleep(3)
 
     def click_element(self, by, value):
-        try:
-            self.driver.find_element(by, value).click()
-        except Exception as e:
-            print("Failed to click element, printing exception")
-            print(e)
-            sleep(10)
+        self.driver.find_element(by, value).click()
         sleep(1)
 
     def click_element_using_position(self, element):
