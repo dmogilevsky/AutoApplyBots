@@ -5,3 +5,4 @@ title = ''
 zipCode = ''
 name = ''
 phone = ''
+chromeProfilePath = r"/home/ongun/.config/google-chrome/Profile 3"
