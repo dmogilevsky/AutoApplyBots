@@ -9,6 +9,7 @@ from time import sleep
 
 import info
 
+
 class IndeedBot:
     def __init__(self):
 
@@ -54,8 +55,9 @@ class IndeedBot:
         print('User has logged in')
 
         # Go to our specific job search
-        self.driver.get('https://www.indeed.com/jobs?q=software+engineer&sc=0kf%3Aattr%28DSQF7%29%3B&vjk=e14527580da91c17')
- 
+        self.driver.get(
+            'https://www.indeed.com/jobs?q=software+engineer&sc=0kf%3Aattr%28DSQF7%29%3B&vjk=e14527580da91c17')
+
         # get list of jobs with apply by indeed only
         jobList = self.driver.find_elements(By.CLASS_NAME, 'iaIcon')
 
@@ -73,15 +75,18 @@ class IndeedBot:
             print('Applying job ' + title)
 
             # Click on Apply Now
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'jobsearch-IndeedApplyButton-contentWrapper'))).click()
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, 'jobsearch-IndeedApplyButton-contentWrapper'))).click()
 
             # Locate the parent iframe and switch to it
-            parentIframe = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH,"//iframe[contains(@id,'modal-iframe')]")))    
+            parentIframe = WebDriverWait(self.driver, 30).until(
+                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@id,'modal-iframe')]")))
             self.driver.switch_to.frame(parentIframe)
 
             # Locate the parent iframe and switch to it
-            childIframe =  WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH,"//iframe[contains(@src,'resumeapply')]")))
-            self.driver.switch_to.frame(childIframe)   
+            childIframe = WebDriverWait(self.driver, 30).until(
+                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@src,'resumeapply')]")))
+            self.driver.switch_to.frame(childIframe)
             conButton = self.driver.find_element_by_xpath('//*[@id="form-action-continue"]')
             # Click on continue button if there any             
             if conButton.is_enabled():
@@ -89,21 +94,19 @@ class IndeedBot:
                 conButton.click()
                 if conButton.is_enabled():
                     self.driver.close()
-                    self.driver.switch_to.window(main) 
+                    self.driver.switch_to.window(main)
                 else:
-                    WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH,'//*[@id="form-action-submit"]'))).click()
+                    WebDriverWait(self.driver, 30).until(
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="form-action-submit"]'))).click()
                     self.driver.close()
-                    self.driver.switch_to.window(main) 
-            
+                    self.driver.switch_to.window(main)
 
-            #If no button close the window and switch to main window
-            #WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form-action-submit"]'))).click()
-            #if self.driver.find_element_by_xpath('//*[@id="ia-container"]/div/div[2]/a'):
-            else: 
+                    # If no button close the window and switch to main window
+            # WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form-action-submit"]'))).click()
+            # if self.driver.find_element_by_xpath('//*[@id="ia-container"]/div/div[2]/a'):
+            else:
                 self.driver.close()
                 self.driver.switch_to.window(main)
- 
-
 
 
 IndeedBot()
