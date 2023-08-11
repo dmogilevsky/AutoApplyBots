@@ -1,13 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from time import sleep
-
-import info
+import undetected_chromedriver as uc
 
 
 class IndeedBot:
@@ -15,7 +12,7 @@ class IndeedBot:
 
         # Create headless chrome
         # Create webdriver, add user data to persist login and not have to relog
-        options = Options()
+        options = webdriver.ChromeOptions()
         options.add_argument("--disable-popup-blocking")
         options.add_argument("--ignore-certificate-errors")
         options.add_argument('--no-sandbox')
@@ -24,16 +21,16 @@ class IndeedBot:
         options.add_argument("--disable-blink-features")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--disable-notifications")
-        options.add_experimental_option('useAutomationExtension', False)
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        # options.add_experimental_option('useAutomationExtension', False)
+        # options.add_experimental_option("excludeSwitches", ["enable-automation"])
 
         # create a new Chrome session
-        self.driver = webdriver.Chrome(service=Service(), options=options)
+        self.driver = uc.Chrome(options=options)
 
         # open indeed
         self.driver.get('https://secure.indeed.com/account/login')
 
-        # # Login via google
+        # # Login via google, not working for now so do it manually
         # self.driver.find_element(By.ID, 'login-google-button').click()
         # window_before = self.driver.window_handles[0]
         # window_after = self.driver.window_handles[1]
@@ -63,50 +60,56 @@ class IndeedBot:
 
         # initialize main page
         main = self.driver.window_handles[0]
-
+        actions = webdriver.common.action_chains.ActionChains(self.driver)
         # Go through the jobList and open in new tab
         for job in jobList:
-            job.click()
+            actions.move_to_element_with_offset(job, 1, 1).click().perform()
 
-            # get new tab and switch to it
-            jobWin = self.driver.window_handles[1]
-            self.driver.switch_to.window(jobWin)
-            title = self.driver.title
-            print('Applying job ' + title)
+            sleep(1)
 
-            # Click on Apply Now
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'jobsearch-IndeedApplyButton-contentWrapper'))).click()
+            self.click_element(By.ID, 'indeedApplyButton')
 
-            # Locate the parent iframe and switch to it
-            parentIframe = WebDriverWait(self.driver, 30).until(
-                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@id,'modal-iframe')]")))
-            self.driver.switch_to.frame(parentIframe)
+            self.driver.switch_to.window(self.driver.window_handles[1])
+            sleep(5)
 
-            # Locate the parent iframe and switch to it
-            childIframe = WebDriverWait(self.driver, 30).until(
-                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@src,'resumeapply')]")))
-            self.driver.switch_to.frame(childIframe)
-            conButton = self.driver.find_element_by_xpath('//*[@id="form-action-continue"]')
-            # Click on continue button if there any             
-            if conButton.is_enabled():
-                self.driver.implicitly_wait(30)
-                conButton.click()
-                if conButton.is_enabled():
-                    self.driver.close()
-                    self.driver.switch_to.window(main)
-                else:
-                    WebDriverWait(self.driver, 30).until(
-                        EC.presence_of_element_located((By.XPATH, '//*[@id="form-action-submit"]'))).click()
-                    self.driver.close()
-                    self.driver.switch_to.window(main)
+            self.handle_cloudflare_auth()
 
-                    # If no button close the window and switch to main window
-            # WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form-action-submit"]'))).click()
-            # if self.driver.find_element_by_xpath('//*[@id="ia-container"]/div/div[2]/a'):
-            else:
-                self.driver.close()
-                self.driver.switch_to.window(main)
+            self.click_element(By.ID, 'resume-display-buttonHeader')
+
+            # Continue skipping through the indeed apply pages until we either can't
+            # or we have applied for the job
+            previous_url = self.driver.current_url
+            while 'post-apply' not in previous_url:
+                self.click_element(By.CLASS_NAME, 'ia-continueButton')
+                if previous_url == self.driver.current_url:
+                    print("Need user input to continue")
+                    while (previous_url == self.driver.current_url):
+                        pass
+                previous_url = self.driver.current_url
+
+            sleep(2)
+            self.driver.close()
+            self.driver.switch_to.window(main)
+            sleep(3)
+            self.handle_cloudflare_auth()
+
+    def click_element(self, by, value):
+        self.handle_cloudflare_auth()
+        try:
+            self.driver.find_element(by, value).click()
+        except Exception as e:
+            print("Failed to click element, printing exception")
+            print(e)
+            sleep(100)
+        sleep(1)
+        self.handle_cloudflare_auth()
+
+    def handle_cloudflare_auth(self):
+        if 'auth' in self.driver.current_url:
+            self.driver.find_element(By.ID, 'cf-stage').click()
+            sleep(3)
+            self.driver.switch_to.window(self.driver.window_handles[len(self.driver.window_handles)-1])
+            sleep(2)
 
 
 IndeedBot()
