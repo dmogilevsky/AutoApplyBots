@@ -51,11 +51,10 @@ except Exception as e:
     print("Don't need to log in. Continuing.")
 
 for keyword in config.keywords:
-    search_url = (f"https://www.dice.com/jobs?q=" + keyword + "&countryCode=US&radius=30&radiusUnit=mi&page=%s"
-                                                              "&pageSize=100&filters.easyApply=true&filters.isRemote=true&language=en'")
     # iterate through pages until there are no links
     for page_number in count(1):
-        search_url = search_url % page_number
+        search_url = "https://www.dice.com/jobs?q=" + keyword + "&countryCode=US&radius=30&radiusUnit=mi&page=" + str(page_number) + "&pageSize=100"
+        "&filters.easyApply=true&filters.isRemote=true&language=en'"
         driver.get(search_url)
         try:
             search_cards = wait.until(
