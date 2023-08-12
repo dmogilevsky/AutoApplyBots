@@ -150,5 +150,4 @@ class IndeedBot:
     def element_exists(self, by, value):
         return not (len(self.driver.find_elements(by, value)) == 0)
 
-
 IndeedBot()

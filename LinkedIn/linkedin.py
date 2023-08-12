@@ -130,8 +130,6 @@ class Linkedin:
             prYellow("Category: " + url_words[0] + "," + url_words[1] + " applied: " + str(count_applied) +
                      " jobs out of " + str(count_jobs) + ".")
 
-        utils.donate(self)
-
     def chooseResume(self):
         try:
             beSureIncludeResumeTxt = self.driver.find_element(By.CLASS_NAME, "jobs-document-upload__title--is-required")
