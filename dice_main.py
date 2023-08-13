@@ -96,9 +96,24 @@ for keyword in common_config.keywords:
             try:
                 sleep(4)
 
-                apply_container = driver.find_element(By.CSS_SELECTOR,
-                                                      "#__next > div > main > header > div > div > div.order-last.col-span-full.flex.flex-wrap.justify-around.items-start.md\:items-end.md\:col-span-4.md\:justify-end.lg\:col-start-7.lg\:col-span-6 > div.w-full.flex.md\:justify-end > apply-button-wc")
+                if common_utils.element_exists(driver, By.XPATH, '/html/body/div[3]/div/main/header/div/div/div[4]/div[2]/apply-button-wc//apply-button/div/button/external-icon'):
+                    print("This is an external job, skipping")
+                    continue
+
+                apply_container_selector_string = "#__next > div > main > header > div > div > div.order-last.col-span-full.flex.flex-wrap.justify-around.items-start.md\:items-end.md\:col-span-4.md\:justify-end.lg\:col-start-7.lg\:col-span-6 > div.w-full.flex.md\:justify-end > apply-button-wc"
+                apply_container = driver.find_element(By.CSS_SELECTOR, apply_container_selector_string)
                 # Possibly some logic here can be added to ensure the apply_container is valid
+
+                # shadow root > apply-button > div > button > external-icon
+                try:
+                    print(driver.execute_script(
+                        "return document.querySelectorAll('" + apply_container_selector_string + "')"))
+                    external_icon = driver.execute_script(
+                        "return document.querySelectorAll('" + apply_container_selector_string + "')")
+                    if external_icon is not None:
+                        print("This job application leads to an external site, skipping")
+                except Exception as e:
+                    print(e)
 
                 apply_container.click()
 
