@@ -1,8 +1,8 @@
 from time import sleep
 
 from selenium import webdriver
-import config
 
+import common.common_config as common_config
 
 def chromeBrowserOptions():
     options = webdriver.ChromeOptions()
@@ -14,8 +14,10 @@ def chromeBrowserOptions():
     options.add_argument("--disable-blink-features")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-notifications")
-    initial_path = config.chromeProfilePath[0:config.chromeProfilePath.rfind("/")]
-    profile_dir = config.chromeProfilePath[config.chromeProfilePath.rfind("/") + 1:]
+    if common_config.headless:
+        options.add_argument("--headless")
+    initial_path = common_config.chromeProfilePath[0:common_config.chromeProfilePath.rfind("/")]
+    profile_dir = common_config.chromeProfilePath[common_config.chromeProfilePath.rfind("/") + 1:]
     options.add_argument('--user-data-dir=' + initial_path)
     options.add_argument('--profile-directory=' + profile_dir)
     return options

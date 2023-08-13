@@ -1,56 +1,42 @@
 import json
 import os
-import config
 from itertools import count
 from time import sleep
-
-from selenium import webdriver
+from Dice import dice_config
 from selenium.common import NoAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import undetected_chromedriver as uc
+
+from common import common_utils, common_config
 
 # see if any data exists for this user
-USER_DATA_PATH = os.path.join("cached_data", f"{config.username}.json")
+USER_DATA_PATH = os.path.join("Dice/cached_data", f"{dice_config.username}.json")
 completed_jobs = []
-if not os.path.exists("cached_data"):
-    os.mkdir("cached_data")
+if not os.path.exists("Dice/cached_data"):
+    os.mkdir("Dice/cached_data")
 if os.path.exists(USER_DATA_PATH):
     with open(USER_DATA_PATH, "r") as file_handle:
         completed_jobs = json.loads(file_handle.read())
         # dictionary of {job_id: applied boolean}
 
-# Create webdriver, add user data to persist login and not have to relog
-options = Options()
-if config.cache_path:
-    options.add_argument("user-data-dir=" + config.cache_path)
-options.add_argument("--disable-popup-blocking")
-options.add_argument("--ignore-certificate-errors")
-options.add_argument('--no-sandbox')
-options.add_argument("--disable-extensions")
-options.add_argument('--disable-gpu')
-options.add_argument("--disable-blink-features")
-options.add_argument("--disable-blink-features=AutomationControlled")
-options.add_argument("--disable-notifications")
-options.add_experimental_option('useAutomationExtension', False)
-options.add_experimental_option("excludeSwitches", ["enable-automation"])
+options = common_utils.chromeBrowserOptions()
 
-driver = webdriver.Chrome(service=Service(), options=options)
-wait = WebDriverWait(driver, config.wait_s)
+driver = uc.Chrome(options=options)
+wait = WebDriverWait(driver, dice_config.wait_s)
 
 # log in
 driver.get("https://www.dice.com/dashboard/login")
 try:
     elem = wait.until(EC.presence_of_element_located((By.ID, "email")))
-    elem.send_keys(f"{config.username}\t{config.password}{Keys.RETURN}")
+    elem.send_keys(f"{dice_config.username}\t{dice_config.password}{Keys.RETURN}")
 except Exception as e:
     print(e)
     print("Don't need to log in. Continuing.")
 
-for keyword in config.keywords:
+for keyword in common_config.keywords:
     # iterate through pages until there are no links
     for page_number in count(1):
         search_url = "https://www.dice.com/jobs?q=" + keyword + "&countryCode=US&radius=30&radiusUnit=mi&page=" + str(page_number) + "&pageSize=100"
@@ -87,7 +73,7 @@ for keyword in config.keywords:
         for job_id, job_text, job_url in job_urls:
             # Job keywords, you want at least one of these to be present
             matching_title = False
-            for s in config.keywords:
+            for s in common_config.keywords:
                 if s.lower() in job_text.lower():
                     matching_title = True
                     break
@@ -95,7 +81,7 @@ for keyword in config.keywords:
                 continue
 
             # Make sure nothing in the job title is one of the blacklisted words
-            if any(kw.lower() in job_text.lower() for kw in config.blacklist):
+            if any(kw.lower() in job_text.lower() for kw in dice_config.blacklist):
                 continue
             print(f"Applying to {job_text}.")
             driver.get(job_url)
@@ -109,9 +95,9 @@ for keyword in config.keywords:
                 pass
             try:
                 sleep(4)
+
                 apply_container = driver.find_element(By.CSS_SELECTOR,
                                                       "#__next > div > main > header > div > div > div.order-last.col-span-full.flex.flex-wrap.justify-around.items-start.md\:items-end.md\:col-span-4.md\:justify-end.lg\:col-start-7.lg\:col-span-6 > div.w-full.flex.md\:justify-end > apply-button-wc")
-
                 # Possibly some logic here can be added to ensure the apply_container is valid
 
                 apply_container.click()
