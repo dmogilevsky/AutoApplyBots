@@ -28,6 +28,12 @@ class Linkedin:
             time.sleep(2)
             self.driver.find_element("xpath", '//button[@type="submit"]').click()
             time.sleep(5)
+            while True:
+                try:
+                    self.driver.find_element(By.XPATH, '//small').text
+                    break
+                except:
+                    time.sleep(1)
             self.mongoConnection("Check")
         except:
             prRed(
