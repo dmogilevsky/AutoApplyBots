@@ -39,8 +39,7 @@ except Exception as e:
 for keyword in common_config.keywords:
     # iterate through pages until there are no links
     for page_number in count(1):
-        search_url = "https://www.dice.com/jobs?q=" + keyword + "&countryCode=US&radius=30&radiusUnit=mi&page=" + str(page_number) + "&pageSize=100"
-        "&filters.easyApply=true&filters.isRemote=true&language=en'"
+        search_url = dice_config.SEARCH_URL_WITHOUT_PAGE.format(page_number)
         driver.get(search_url)
         try:
             search_cards = wait.until(
@@ -56,7 +55,7 @@ for keyword in common_config.keywords:
             )
         except:
             ...
-        job_urls = []
+        jobs = []
         for card in search_cards:
             link = card.find_element(by=By.CSS_SELECTOR, value="a.card-title-link")
             job_id = link.get_attribute("id")
@@ -68,9 +67,9 @@ for keyword in common_config.keywords:
                     continue
             except:
                 ...
-            job_urls.append((job_id, link.text, link.get_attribute("href")))
+            jobs.append((job_id, link.text))
 
-        for job_id, job_text, job_url in job_urls:
+        for job_id, job_text in jobs:
             # Job keywords, you want at least one of these to be present
             matching_title = False
             for s in common_config.keywords:
@@ -84,7 +83,9 @@ for keyword in common_config.keywords:
             if any(kw.lower() in job_text.lower() for kw in dice_config.blacklist):
                 continue
             print(f"Applying to {job_text}.")
-            driver.get(job_url)
+
+            driver.get(f"https://www.dice.com/job-detail/{job_id}")
+            driver.switch_to.window(driver.window_handles[-1])
 
             # This is important, if we failed to apply to a previous job, going to a new link will trigger an alert
             # about leaving the old page. The code below handles the alert if it exists
@@ -100,8 +101,10 @@ for keyword in common_config.keywords:
                     print("This is an external job, skipping")
                     continue
 
-                apply_container_selector_string = "#__next > div > main > header > div > div > div.order-last.col-span-full.flex.flex-wrap.justify-around.items-start.md\:items-end.md\:col-span-4.md\:justify-end.lg\:col-start-7.lg\:col-span-6 > div.w-full.flex.md\:justify-end > apply-button-wc"
-                apply_container = driver.find_element(By.CSS_SELECTOR, apply_container_selector_string)
+
+                apply_container_selector_string = "/html/body/div[1]/div/main/div[2]/div/div/div/div[3]/div[2]/div/div/div[2]/div[2]/apply-button-wc"
+                #apply_container = driver.find_element(By.XPATH, apply_container_selector_string)
+                button = driver.execute_script("return document.querySelector('apply-button-wc.hydrated')")
                 # Possibly some logic here can be added to ensure the apply_container is valid
 
                 # shadow root > apply-button > div > button > external-icon
@@ -115,7 +118,7 @@ for keyword in common_config.keywords:
                 except Exception as e:
                     print(e)
 
-                apply_container.click()
+                button.click()
 
                 sleep(4)
                 driver.find_element(By.CSS_SELECTOR, "button.btn:nth-child(2)").click()
@@ -131,6 +134,7 @@ for keyword in common_config.keywords:
 
             except Exception as e:
                 print("Applying to this job failed with error:", e)
+                driver.switch_to.window(driver.window_handles[0])
             # job is done processing
             completed_jobs.append(job_id)
             with open(USER_DATA_PATH, "w") as file_handle:
