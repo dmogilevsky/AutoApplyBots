@@ -39,7 +39,7 @@ except Exception as e:
 for keyword in common_config.keywords:
     # iterate through pages until there are no links
     for page_number in count(1):
-        search_url = dice_config.SEARCH_URL_WITHOUT_PAGE.format(page_number)
+        search_url = dice_config.SEARCH_URL_WITHOUT_PAGE.format(page_number=page_number)
         driver.get(search_url)
         try:
             search_cards = wait.until(
